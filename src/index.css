@@ -364,3 +364,30 @@ body {
   overflow: hidden;
   border: 1px solid #e1e4e8;
 }
+
+/* 本文内画像のスタイル（スマホ・PC最適化版） */
+.notion-body-img-wrapper {
+  margin: 2rem 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.notion-body-img {
+  max-width: 100%;
+  /* ★ 縦長や巨大な画像が画面を埋め尽くさないよう、縦の最大サイズを画面全体の45%までに制限 */
+  max-height: 45vh;
+  /* ★ アスペクト比（縦横比）を崩さずに、枠内に綺麗に収める設定 */
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s;
+}
+
+/* ★ スマホ（画面幅が狭い端末）専用の調整 */
+@media (max-width: 640px) {
+  .notion-body-img {
+    /* あえて画面の端から端まで広げず、90%に絞ることで文字の横幅（余白）と綺麗に馴染ませる */
+    max-width: 90%;
+  }
+}
