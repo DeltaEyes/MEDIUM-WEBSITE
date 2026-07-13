@@ -43,7 +43,7 @@ async function fetchArticles() {
                 title: props.名前?.title[0]?.plain_text || 'Untitled',
                 excerpt: props.Excerpt?.rich_text[0]?.plain_text || '',
                 date: props.Date?.date?.start?.replace(/-/g, '.') || '',
-                category: props.Category?.select?.name || 'General',
+                category: props.Category?.multi_select?.[0]?.name || 'General',
                 readTime: '3 min read',
                 image: props.Image?.rich_text[0]?.plain_text || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600',
             };
