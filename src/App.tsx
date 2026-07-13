@@ -1,48 +1,12 @@
 import { useState } from 'react';
 import './App.css';
-
-// 記事のダミーデータ
-const ARTICLES = [
-  {
-    id: 1,
-    title: "モダンWebフロントエンドの現在地",
-    excerpt: "ReactやViteなど、進化を続けるフロントエンド環境の最新トレンドと、開発者が知っておくべきベストプラクティスを探ります。",
-    date: "2026.07.12",
-    category: "Technology",
-    readTime: "5 min read",
-    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600"
-  },
-  {
-    id: 2,
-    title: "ミニマルデザインがもたらすユーザー体験",
-    excerpt: "「Less is more」の哲学はWebデザインにおいてどう機能するのか。余白の美学とアクセシビリティの両立について。",
-    date: "2026.06.28",
-    category: "Design",
-    readTime: "4 min read",
-    image: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=600"
-  },
-  {
-    id: 3,
-    title: "リモートワーク環境を最適化するガジェット10選",
-    excerpt: "生産性を劇的に向上させる、2026年最新のデスク周辺機器と、快適な作業空間を作るためのヒントをご紹介します。",
-    date: "2026.06.15",
-    category: "Lifestyle",
-    readTime: "7 min read",
-    image: "https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&q=80&w=600"
-  },
-  {
-    id: 4,
-    title: "次世代のUI/UX：AIが変えるインターフェース",
-    excerpt: "ジェネレーティブAIが標準搭載される時代において、画面設計はどのように変わるのか。対話型UIの可能性を考察。",
-    date: "2026.05.30",
-    category: "UI/UX",
-    readTime: "6 min read",
-    image: "https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=600"
-  }
-];
+import initialArticles from './data/articles.json';
 
 function App() {
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Notionから取得したデータ、または空の配列をセット
+  const ARTICLES = initialArticles || [];
 
   // 検索ワードで記事を絞り込む
   const filteredArticles = ARTICLES.filter(article =>
