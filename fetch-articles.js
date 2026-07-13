@@ -1,11 +1,25 @@
-import pkg from '@notionhq/client';
-const { Client } = pkg;
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { Client } = require('@notionhq/client');
 import fs from 'fs';
 import path from 'path';
 
-// 環境変数からトークンとIDを取得（ローカルテスト用、またはCloudflare用）
+// 環境変数からトークンとIDを取得
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
+
+// 【デバッグ用】何が原因かログに強制出力させます
+console.log("=== Notion Client Debug ===");
+console.log("notion object type:", typeof notion);
+if (notion) {
+    console.log("notion properties:", Object.keys(notion));
+    if (notion.databases) {
+        console.log("notion.databases properties:", Object.keys(notion.databases));
+    } else {
+        console.log("notion.databases is undefined!");
+    }
+}
+console.log("===========================");
 
 async function fetchArticles() {
     if (!process.env.NOTION_TOKEN || !process.env.NOTION_DATABASE_ID) {
@@ -18,10 +32,10 @@ async function fetchArticles() {
             database_id: databaseId,
             filter: {
                 property: 'Published',
-                checkbox: { equals: true }, // 公開にチェックが入っているものだけ取得
+                checkbox: { equals: true },
             },
             sorts: [
-                { property: 'Date', direction: 'descending' }, // 日付が新しい順
+                { property: 'Date', direction: 'descending' },
             ],
         });
 
@@ -38,7 +52,6 @@ async function fetchArticles() {
             };
         });
 
-        // srcフォルダ内に json として保存
         const dirPath = path.resolve('src/data');
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
