@@ -86,10 +86,10 @@ async function fetchArticles() {
 
         const data = await response.json();
 
-        // 各ページの本文を非同期で並列取得
         const articles = await Promise.all(data.results.map(async (page) => {
             const props = page.properties;
 
+            // カテゴリー・タグ列の自動探索
             let categoryProp = null;
             for (const key of Object.keys(props)) {
                 const lowerKey = key.toLowerCase().trim();
@@ -113,18 +113,28 @@ async function fetchArticles() {
             const dateObj = props.Date || props.date;
             const imageObj = props.Image || props.image;
 
-            // ★ 本文HTMLを取得して結合する
+            // 本文HTMLの取得
             const contentHtml = await getPageContent(page.id);
+
+            // 分裂した文字列を1つに合体
+            const fullTitle = titleObj?.title ? titleObj.title.map(t => t.plain_text).join('') : 'Untitled';
+            const fullExcerpt = excerptObj?.rich_text ? excerptObj.rich_text.map(t => t.plain_text).join('') : '';
+            const fullImage = imageObj?.rich_text ? imageObj.rich_text.map(t => t.plain_text).join('') : 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600';
+
+            // ★ 本文の文字数から読了時間を全自動計算（1分あたり400文字換算・最低1分）
+            const plainTextLength = contentHtml.replace(/<[^>]*>/g, '').length; // HTMLタグをすべて除外した純粋な文字数
+            const minutes = Math.max(1, Math.ceil(plainTextLength / 400));
+            const finalReadTime = `${minutes} min read`;
 
             return {
                 id: page.id,
-                title: titleObj?.title[0]?.plain_text || 'Untitled',
-                excerpt: excerptObj?.rich_text[0]?.plain_text || '',
+                title: fullTitle,
+                excerpt: fullExcerpt,
                 date: dateObj?.date?.start?.replace(/-/g, '.') || '',
                 category: categoryName,
-                readTime: '3 min read',
-                image: imageObj?.rich_text[0]?.plain_text || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600',
-                content: contentHtml // JSONに本文を内包
+                readTime: finalReadTime, // 計算された時間をセット
+                image: fullImage,
+                content: contentHtml
             };
         }));
 
@@ -136,7 +146,7 @@ async function fetchArticles() {
             path.join(dirPath, 'articles.json'),
             JSON.stringify(articles, null, 2)
         );
-        console.log(`Notionから ${articles.length} 件の記事（本文含む）を正常に取得しました。`);
+        console.log(`Notionから ${articles.length} 件の記事を正常に取得しました。`);
     } catch (error) {
         console.error('Notionからのデータ取得に失敗しました:', error);
         process.exit(1);
