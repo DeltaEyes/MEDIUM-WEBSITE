@@ -14,10 +14,9 @@ async function downloadImage(url, destPath) {
     fs.writeFileSync(destPath, Buffer.from(buffer));
 }
 
-// 外部URLからOGP（タイトル・画像・説明）を取得してリンクプレビューのHTMLを作る関数
+// 外部URLからOGPを取得してリンクプレビューのHTMLを作る関数
 async function getLinkPreviewHtml(url) {
     try {
-        // 3秒でタイムアウトを設定し、重いサイトでビルドが止まるのを防ぐ
         const res = await fetch(url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
             signal: AbortSignal.timeout(3000)
@@ -25,7 +24,6 @@ async function getLinkPreviewHtml(url) {
         if (!res.ok) throw new Error();
         const text = await res.text();
 
-        // 正規表現で簡易的にタイトル、説明、画像を抽出
         const titleMatch = text.match(/<title>([^<]*)<\/title>/i) || text.match(/property="og:title"\s+content="([^"]*)"/i) || text.match(/content="([^"]*)"\s+property="og:title"/i);
         const descMatch = text.match(/property="og:description"\s+content="([^"]*)"/i) || text.match(/content="([^"]*)"\s+property="og:description"/i) || text.match(/name="description"\s+content="([^"]*)"/i);
         const imageMatch = text.match(/property="og:image"\s+content="([^"]*)"/i) || text.match(/content="([^"]*)"\s+property="og:image"/i);
@@ -46,12 +44,24 @@ async function getLinkPreviewHtml(url) {
       </a>
     `;
     } catch (e) {
-        // 取得失敗時はシンプルなテキストリンクとして表示
         return `<div class="notion-bookmark-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">🔗 ${url}</a></div>`;
     }
 }
 
-// Notionのブロックデータを簡易的なHTML文字列に変換するヘルパー関数
+// テキスト内のインラインリンクを <a> タグに自動変換するヘルパー関数
+function renderRichText(richTextArray) {
+    if (!richTextArray) return '';
+    return richTextArray.map(t => {
+        let text = t.plain_text || '';
+        text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        if (t.href) {
+            return `<a href="${t.href}" target="_blank" rel="noopener noreferrer" class="notion-inline-link">${text}</a>`;
+        }
+        return text;
+    }).join('');
+}
+
+// NotionのブロックデータをHTML文字列に変換するヘルパー関数
 async function getPageContent(pageId) {
     try {
         const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`, {
@@ -68,35 +78,33 @@ async function getPageContent(pageId) {
         for (const block of data.results) {
             switch (block.type) {
                 case 'paragraph':
-                    const pText = block.paragraph.rich_text.map(t => t.plain_text).join('');
-                    if (pText) html += `<p class="notion-p">${pText}</p>`;
+                    const pHtml = renderRichText(block.paragraph.rich_text);
+                    if (pHtml) html += `<p class="notion-p">${pHtml}</p>`;
                     break;
                 case 'heading_1':
-                    const h1Text = block.heading_1.rich_text.map(t => t.plain_text).join('');
-                    html += `<h1 class="notion-h1">${h1Text}</h1>`;
+                    const h1Html = renderRichText(block.heading_1.rich_text);
+                    html += `<h1 class="notion-h1">${h1Html}</h1>`;
                     break;
                 case 'heading_2':
-                    const h2Text = block.heading_2.rich_text.map(t => t.plain_text).join('');
-                    html += `<h2 class="notion-h2">${h2Text}</h2>`;
+                    const h2Html = renderRichText(block.heading_2.rich_text);
+                    html += `<h2 class="notion-h2">${h2Html}</h2>`;
                     break;
                 case 'heading_3':
-                    const h3Text = block.heading_3.rich_text.map(t => t.plain_text).join('');
-                    html += `<h3 class="notion-h3">${h3Text}</h3>`;
+                    const h3Html = renderRichText(block.heading_3.rich_text);
+                    html += `<h3 class="notion-h3">${h3Html}</h3>`;
                     break;
                 case 'bulleted_list_item':
-                    const bText = block.bulleted_list_item.rich_text.map(t => t.plain_text).join('');
-                    html += `<li class="notion-bullet">${bText}</li>`;
+                    const bHtml = renderRichText(block.bulleted_list_item.rich_text);
+                    html += `<li class="notion-bullet">${bHtml}</li>`;
                     break;
                 case 'numbered_list_item':
-                    const nText = block.numbered_list_item.rich_text.map(t => t.plain_text).join('');
-                    html += `<li class="notion-number">${nText}</li>`;
+                    const nHtml = renderRichText(block.numbered_list_item.rich_text);
+                    html += `<li class="notion-number">${nHtml}</li>`;
                     break;
                 case 'code':
                     const codeText = block.code.rich_text.map(t => t.plain_text).join('');
                     html += `<pre class="notion-code"><code>${codeText}</code></pre>`;
                     break;
-
-                // ★ 本文内の画像ブロック対応
                 case 'image':
                     const imgUrl = block.image.file?.url || block.image.external?.url;
                     if (imgUrl) {
@@ -105,7 +113,6 @@ async function getPageContent(pageId) {
                             let ext = path.extname(urlWithoutQuery) || '.jpg';
                             const imgName = `body-${block.id}${ext}`;
                             const destPath = path.join(imagesDir, imgName);
-
                             await downloadImage(imgUrl, destPath);
                             html += `<div class="notion-body-img-wrapper"><img src="/images/${imgName}" class="notion-body-img" alt="Article image" /></div>`;
                         } catch (err) {
@@ -113,13 +120,47 @@ async function getPageContent(pageId) {
                         }
                     }
                     break;
-
-                // ★ 埋め込みリンク・ブックマークブロック対応
                 case 'bookmark':
                     html += await getLinkPreviewHtml(block.bookmark.url);
                     break;
                 case 'link_preview':
                     html += await getLinkPreviewHtml(block.link_preview.url);
+                    break;
+
+                // ★ SoundCloudなどの外部埋め込みブロック対応
+                case 'embed':
+                    const embedUrl = block.embed?.url;
+                    if (embedUrl) {
+                        if (embedUrl.includes('soundcloud.com')) {
+                            // URLを安全にエンコードしてSoundCloud公式プレイヤーを生成
+                            const encodedUrl = encodeURIComponent(embedUrl);
+                            html += `
+                <div class="notion-embed-soundcloud">
+                  <iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encodedUrl}&color=%23ff5500&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"></iframe>
+                </div>
+              `;
+                        } else {
+                            // それ以外の埋め込みは汎用iframeとして出力
+                            html += `<div class="notion-embed-fallback"><iframe src="${embedUrl}" width="100%" height="450" frameborder="0" allowfullscreen></iframe></div>`;
+                        }
+                    }
+                    break;
+
+                // ★ YouTubeなどの動画ブロック対応
+                case 'video':
+                    const videoUrl = block.video.file?.url || block.video.external?.url;
+                    if (videoUrl) {
+                        if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+                            const videoId = videoUrl.includes('youtu.be') ? videoUrl.split('/').pop().split('?')[0] : new URL(videoUrl).searchParams.get('v');
+                            if (videoId) {
+                                html += `
+                  <div class="notion-embed-youtube">
+                    <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                  </div>
+                `;
+                            }
+                        }
+                    }
                     break;
 
                 default:
