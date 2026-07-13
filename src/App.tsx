@@ -56,7 +56,8 @@ function App() {
       <main className="main-content">
         {currentArticle ? (
           /* ================= 詳細画面 ================= */
-          <article className="single-article">
+          /* ★ blog-post-container クラスを追加して全体を中央寄せ＆720px幅に制限 */
+          <article className="single-article blog-post-container">
             <button className="back-button" onClick={() => setSelectedArticleId(null)}>
               &larr; 一覧に戻る
             </button>
@@ -72,7 +73,12 @@ function App() {
             </header>
 
             <div className="post-hero-image-wrapper">
-              <img src={currentArticle.image} alt={currentArticle.title} className="post-hero-image" />
+              {/* ★ article-hero-image クラスを追加してカバー画像の巨大化をストップ */}
+              <img
+                src={currentArticle.image}
+                alt={currentArticle.title}
+                className="post-hero-image article-hero-image"
+              />
             </div>
 
             {/* NotionからパースされたHTML本文を安全に注入 */}
