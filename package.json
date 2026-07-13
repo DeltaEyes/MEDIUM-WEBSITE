@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "node fetch-articles.js && vite build",
+    "build": "node fetch-articles.js && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
