@@ -1,25 +1,7 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { Client } = require('@notionhq/client');
 import fs from 'fs';
 import path from 'path';
 
-// 環境変数からトークンとIDを取得
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID;
-
-// 【デバッグ用】何が原因かログに強制出力させます
-console.log("=== Notion Client Debug ===");
-console.log("notion object type:", typeof notion);
-if (notion) {
-    console.log("notion properties:", Object.keys(notion));
-    if (notion.databases) {
-        console.log("notion.databases properties:", Object.keys(notion.databases));
-    } else {
-        console.log("notion.databases is undefined!");
-    }
-}
-console.log("===========================");
 
 async function fetchArticles() {
     if (!process.env.NOTION_TOKEN || !process.env.NOTION_DATABASE_ID) {
@@ -28,18 +10,33 @@ async function fetchArticles() {
     }
 
     try {
-        const response = await notion.databases.query({
-            database_id: databaseId,
-            filter: {
-                property: 'Published',
-                checkbox: { equals: true },
+        // ライブラリを使わず、Node.js標準のfetchでNotion APIを直接叩く
+        const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.NOTION_TOKEN}`,
+                'Notion-Version': '2022-06-28',
+                'Content-Type': 'application/json'
             },
-            sorts: [
-                { property: 'Date', direction: 'descending' },
-            ],
+            body: JSON.stringify({
+                filter: {
+                    property: 'Published',
+                    checkbox: { equals: true }, // 公開にチェックが入っているもの
+                },
+                sorts: [
+                    { property: 'Date', direction: 'descending' }, // 日付が新しい順
+                ],
+            })
         });
 
-        const articles = response.results.map((page) => {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Notion API HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        const articles = data.results.map((page) => {
             const props = page.properties;
             return {
                 id: page.id,
@@ -52,6 +49,7 @@ async function fetchArticles() {
             };
         });
 
+        // src/data/articles.json に保存
         const dirPath = path.resolve('src/data');
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
