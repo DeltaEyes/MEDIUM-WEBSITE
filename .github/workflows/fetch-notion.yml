@@ -1,0 +1,41 @@
+name: Fetch Notion Articles
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # 5分おきにNotionを自動監視（時間は自由に変更可能）
+  workflow_dispatch: # GitHubの画面から手動でいつでも即時デプロイできるボタン
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run fetch script
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: node fetch-articles.js
+
+      - name: Commit and Push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add src/data/articles.json public/images/
+          
+          # 変更（差分）があるかチェック
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: auto-update articles from Notion"
+            git push origin main
+          else
+            echo "No changes detected. Skipping push."
+          fi
