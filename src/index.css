@@ -229,22 +229,11 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
-/* 本文内画像のスタイル */
-.notion-body-img-wrapper {
-  margin: 2rem 0;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
+/* ========================================================
+   Notionリッチコンテンツ・メディアスタイル（綺麗に整理済）
+   ======================================================== */
 
-.notion-body-img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-/* リンクプレビュー（ブログカード）のスタイル */
+/* リンクプレビュー（ブログカード） */
 .notion-link-preview {
   display: flex;
   border: 1px solid #e1e4e8;
@@ -328,20 +317,16 @@ body {
   text-decoration: underline;
 }
 
-/* src/index.css などの末尾に追加 */
-
-/* SoundCloudプレイヤーの間隔調整 */
+/* 外部メディア埋め込み（SoundCloud / YouTube） */
 .notion-embed-soundcloud {
   margin: 1.5rem 0;
   width: 100%;
 }
 
-/* YouTubeプレイヤーのレスポンシブ対応 */
 .notion-embed-youtube {
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  /* 16:9 の比率を維持 */
   margin: 2rem 0;
   border-radius: 8px;
   overflow: hidden;
@@ -357,7 +342,6 @@ body {
   border: 0;
 }
 
-/* 汎用埋め込みの調整 */
 .notion-embed-fallback {
   margin: 2rem 0;
   border-radius: 8px;
@@ -365,29 +349,62 @@ body {
   border: 1px solid #e1e4e8;
 }
 
-/* 本文内画像のスタイル（スマホ・PC最適化版） */
+/* ========================================================
+   ★ 記事詳細ページのレイアウト修正・リサイズ最適化
+   ======================================================== */
+
+/* 1. 記事詳細ページ全体を中央寄せにし、読みやすい横幅（720px）に制限する魔法の枠 */
+.blog-post-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+/* 2. 上部のカバー画像（電車の床など）の巨大化をストップする設定 */
+.article-hero-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+/* 3. 本文内画像（ポッチャマ等）を「左寄せ」にし、比率を保って綺麗に縮小 */
 .notion-body-img-wrapper {
-  margin: 2rem 0;
+  margin: 1.5rem 0;
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  /* 文字の左端とぴったり揃える */
 }
 
 .notion-body-img {
-  max-width: 100%;
-  /* ★ 縦長や巨大な画像が画面を埋め尽くさないよう、縦の最大サイズを画面全体の45%までに制限 */
-  max-height: 45vh;
-  /* ★ アスペクト比（縦横比）を崩さずに、枠内に綺麗に収める設定 */
-  object-fit: contain;
+  max-width: 100% !important;
+  max-height: 45vh !important;
+  /* 縦長画像が画面を縦に埋め尽くすのを防ぐ */
+  object-fit: contain !important;
+  /* アスペクト比を絶対に壊さない */
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s;
 }
 
-/* ★ スマホ（画面幅が狭い端末）専用の調整 */
+/* 本文テキスト（NotionのPタグ）の行間とサイズ調整 */
+.notion-p {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #2d3748;
+  margin-bottom: 1.25rem;
+}
+
+/* スマホ用の微調整 */
 @media (max-width: 640px) {
   .notion-body-img {
-    /* あえて画面の端から端まで広げず、90%に絞ることで文字の横幅（余白）と綺麗に馴染ませる */
-    max-width: 90%;
+    max-width: 95% !important;
+    /* スマホ画面の文字幅に綺麗に馴染ませる */
+  }
+
+  .article-hero-image {
+    height: 200px;
+    /* スマホではカバー画像の高さを少し抑える */
   }
 }
