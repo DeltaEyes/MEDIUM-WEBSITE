@@ -1,4 +1,5 @@
-import { Client } from '@notionhq/client';
+import pkg from '@notionhq/client';
+const { Client } = pkg;
 import fs from 'fs';
 import path from 'path';
 
@@ -32,7 +33,7 @@ async function fetchArticles() {
                 excerpt: props.Excerpt?.rich_text[0]?.plain_text || '',
                 date: props.Date?.date?.start?.replace(/-/g, '.') || '',
                 category: props.Category?.select?.name || 'General',
-                readTime: '3 min read', // 必要に応じて固定、またはNotion側でプロパティを作ってもOK
+                readTime: '3 min read',
                 image: props.Image?.rich_text[0]?.plain_text || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600',
             };
         });
