@@ -4,12 +4,51 @@ import path from 'path';
 const databaseId = process.env.NOTION_DATABASE_ID;
 const token = process.env.NOTION_TOKEN;
 
+const imagesDir = path.resolve('public/images');
+
 // 画像を自動ダウンロードするヘルパー関数
 async function downloadImage(url, destPath) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`画像のダウンロードに失敗: ${res.statusText}`);
     const buffer = await res.arrayBuffer();
     fs.writeFileSync(destPath, Buffer.from(buffer));
+}
+
+// 外部URLからOGP（タイトル・画像・説明）を取得してリンクプレビューのHTMLを作る関数
+async function getLinkPreviewHtml(url) {
+    try {
+        // 3秒でタイムアウトを設定し、重いサイトでビルドが止まるのを防ぐ
+        const res = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(3000)
+        });
+        if (!res.ok) throw new Error();
+        const text = await res.text();
+
+        // 正規表現で簡易的にタイトル、説明、画像を抽出
+        const titleMatch = text.match(/<title>([^<]*)<\/title>/i) || text.match(/property="og:title"\s+content="([^"]*)"/i) || text.match(/content="([^"]*)"\s+property="og:title"/i);
+        const descMatch = text.match(/property="og:description"\s+content="([^"]*)"/i) || text.match(/content="([^"]*)"\s+property="og:description"/i) || text.match(/name="description"\s+content="([^"]*)"/i);
+        const imageMatch = text.match(/property="og:image"\s+content="([^"]*)"/i) || text.match(/content="([^"]*)"\s+property="og:image"/i);
+
+        const title = titleMatch ? titleMatch[1].replace(/[\n\r]/g, '').trim() : url;
+        const desc = descMatch ? descMatch[1].replace(/[\n\r]/g, '').trim() : '';
+        const image = imageMatch ? imageMatch[1] : '';
+        const hostname = new URL(url).hostname;
+
+        return `
+      <a href="${url}" target="_blank" rel="noopener noreferrer" class="notion-link-preview">
+        <div class="notion-link-preview-content">
+          <div class="notion-link-preview-title">${title}</div>
+          ${desc ? `<div class="notion-link-preview-desc">${desc}</div>` : ''}
+          <div class="notion-link-preview-url">${hostname}</div>
+        </div>
+        ${image ? `<div class="notion-link-preview-image" style="background-image: url('${image}')"></div>` : ''}
+      </a>
+    `;
+    } catch (e) {
+        // 取得失敗時はシンプルなテキストリンクとして表示
+        return `<div class="notion-bookmark-fallback"><a href="${url}" target="_blank" rel="noopener noreferrer">🔗 ${url}</a></div>`;
+    }
 }
 
 // Notionのブロックデータを簡易的なHTML文字列に変換するヘルパー関数
@@ -30,7 +69,7 @@ async function getPageContent(pageId) {
             switch (block.type) {
                 case 'paragraph':
                     const pText = block.paragraph.rich_text.map(t => t.plain_text).join('');
-                    html += `<p class="notion-p">${pText}</p>`;
+                    if (pText) html += `<p class="notion-p">${pText}</p>`;
                     break;
                 case 'heading_1':
                     const h1Text = block.heading_1.rich_text.map(t => t.plain_text).join('');
@@ -56,6 +95,33 @@ async function getPageContent(pageId) {
                     const codeText = block.code.rich_text.map(t => t.plain_text).join('');
                     html += `<pre class="notion-code"><code>${codeText}</code></pre>`;
                     break;
+
+                // ★ 本文内の画像ブロック対応
+                case 'image':
+                    const imgUrl = block.image.file?.url || block.image.external?.url;
+                    if (imgUrl) {
+                        try {
+                            const urlWithoutQuery = imgUrl.split('?')[0];
+                            let ext = path.extname(urlWithoutQuery) || '.jpg';
+                            const imgName = `body-${block.id}${ext}`;
+                            const destPath = path.join(imagesDir, imgName);
+
+                            await downloadImage(imgUrl, destPath);
+                            html += `<div class="notion-body-img-wrapper"><img src="/images/${imgName}" class="notion-body-img" alt="Article image" /></div>`;
+                        } catch (err) {
+                            console.error('本文内画像の取得失敗:', err);
+                        }
+                    }
+                    break;
+
+                // ★ 埋め込みリンク・ブックマークブロック対応
+                case 'bookmark':
+                    html += await getLinkPreviewHtml(block.bookmark.url);
+                    break;
+                case 'link_preview':
+                    html += await getLinkPreviewHtml(block.link_preview.url);
+                    break;
+
                 default:
                     break;
             }
@@ -70,7 +136,6 @@ async function getPageContent(pageId) {
 async function fetchArticles() {
     const dirPath = path.resolve('src/data');
     const filePath = path.join(dirPath, 'articles.json');
-    const imagesDir = path.resolve('public/images');
 
     if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -87,7 +152,6 @@ async function fetchArticles() {
         return;
     }
 
-    // public/images フォルダがなければ自動作成
     if (!fs.existsSync(imagesDir)) {
         fs.mkdirSync(imagesDir, { recursive: true });
     }
@@ -116,7 +180,6 @@ async function fetchArticles() {
         const articles = await Promise.all(data.results.map(async (page) => {
             const props = page.properties;
 
-            // カテゴリー・タグ列の自動探索
             let categoryProp = null;
             for (const key of Object.keys(props)) {
                 const lowerKey = key.toLowerCase().trim();
@@ -135,7 +198,6 @@ async function fetchArticles() {
                 }
             }
 
-            // 画像列の自動探索
             let imageProp = null;
             for (const key of Object.keys(props)) {
                 const lowerKey = key.toLowerCase().trim();
@@ -154,39 +216,24 @@ async function fetchArticles() {
             const fullTitle = titleObj?.title ? titleObj.title.map(t => t.plain_text).join('') : 'Untitled';
             const fullExcerpt = excerptObj?.rich_text ? excerptObj.rich_text.map(t => t.plain_text).join('') : '';
 
-            // ★ 画像の全自動ダウンロード＆パス置換処理
             let finalImageUrl = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600';
-
             if (imageProp) {
-                // Notionに直接アップロードされたファイル（Files & media型）の処理
                 if (imageProp.type === 'files' && imageProp.files?.length > 0) {
                     const fileObj = imageProp.files[0];
                     const notionImageUrl = fileObj.file?.url || fileObj.external?.url;
-
                     if (notionImageUrl) {
                         try {
-                            // URLから拡張子を特定（なければ.jpg）
                             const urlWithoutQuery = notionImageUrl.split('?')[0];
                             let ext = path.extname(urlWithoutQuery) || '.jpg';
-                            if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext.toLowerCase())) {
-                                ext = '.jpg';
-                            }
-
-                            // 重複しないファイル名（NotionのページID）で保存先を決定
+                            if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext.toLowerCase())) ext = '.jpg';
                             const fileName = `${page.id}${ext}`;
-                            const destPath = path.join(imagesDir, fileName);
-
-                            // ビルド環境に画像を自動ダウンロード
-                            await downloadImage(notionImageUrl, destPath);
-                            finalImageUrl = `/images/${fileName}`; // サイト用のパスに置換
-                            console.log(`画像を自動保存しました: ${fileName}`);
+                            await downloadImage(notionImageUrl, path.join(imagesDir, fileName));
+                            finalImageUrl = `/images/${fileName}`;
                         } catch (err) {
-                            console.error(`画像の自動取得に失敗しました:`, err);
+                            console.error(err);
                         }
                     }
-                }
-                // 従来のURL直貼り（テキスト型やURL型）だった場合の互換性フォールバック
-                else if (imageProp.type === 'rich_text' && imageProp.rich_text?.length > 0) {
+                } else if (imageProp.type === 'rich_text' && imageProp.rich_text?.length > 0) {
                     finalImageUrl = imageProp.rich_text.map(t => t.plain_text).join('');
                 } else if (imageProp.type === 'url' && imageProp.url) {
                     finalImageUrl = imageProp.url;
