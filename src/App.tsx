@@ -1,8 +1,10 @@
+// src/App.tsx
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import initialArticles from './data/articles.json';
+import ArticleDetail from './pages/ArticleDetail'; // ★ さっき作った詳細ページをインポート
 
-// 記事データの型定義
 interface Article {
   id: string;
   title: string;
@@ -14,125 +16,99 @@ interface Article {
   content: string;
 }
 
-function App() {
+// 一覧画面専用のコンポーネント
+function ArticleList({ articles }: { articles: Article[] }) {
   const [searchTerm, setSearchTerm] = useState("");
-  // 現在表示している詳細記事のID（null のときは一覧表示）
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+  const navigate = useNavigate(); // ページ移動のためのフック
 
-  const ARTICLES: Article[] = (initialArticles as Article[]) || [];
-
-  // 選択されたIDに一致する記事を特定
-  const currentArticle = ARTICLES.find(article => article.id === selectedArticleId);
-
-  const filteredArticles = ARTICLES.filter(article =>
+  const filteredArticles = articles.filter(article =>
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     article.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="app-container">
-      {/* ヘッダーセクション */}
-      <header className="header">
-        <div className="header-inner">
-          <h1 className="logo" onClick={() => setSelectedArticleId(null)} style={{ cursor: 'pointer' }}>
-            𝄇MEDIUM
-          </h1>
-          {/* 詳細表示中は検索バーを隠す */}
-          {!selectedArticleId && (
-            <div className="search-wrapper">
-              <input
-                type="text"
-                placeholder="記事やカテゴリを検索..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
-            </div>
-          )}
-        </div>
-      </header>
+    <>
+      <div className="search-wrapper" style={{ marginBottom: '2rem', textAlign: 'right' }}>
+        <input
+          type="text"
+          placeholder="記事やカテゴリーを検索..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+      </div>
 
-      {/* メインコンテンツ */}
-      <main className="main-content">
-        {currentArticle ? (
-          /* ================= 詳細画面 ================= */
-          /* ★ blog-post-container クラスを追加して全体を中央寄せ＆720px幅に制限 */
-          <article className="single-article blog-post-container">
-            <button className="back-button" onClick={() => setSelectedArticleId(null)}>
-              &larr; 一覧に戻る
-            </button>
+      <div className="section-header">
+        <h2>Latest Articles</h2>
+        <p>最新の記事一覧</p>
+      </div>
 
-            <header className="post-header">
-              <span className="post-category">{currentArticle.category}</span>
-              <h1 className="post-title">{currentArticle.title}</h1>
-              <div className="post-meta">
-                <span className="date">{currentArticle.date}</span>
-                <span className="separator">•</span>
-                <span className="read-time">{currentArticle.readTime}</span>
+      <div className="article-grid">
+        {filteredArticles.length > 0 ? (
+          filteredArticles.map(article => (
+            <article
+              key={article.id}
+              className="article-card"
+              onClick={() => navigate(`/article/${article.id}`)} // ★ クリックしたらURLを移動させる！
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="card-image-wrapper">
+                <img src={article.image} alt={article.title} className="card-image" />
+                <span className="category-badge">{article.category}</span>
               </div>
-            </header>
-
-            <div className="post-hero-image-wrapper">
-              {/* ★ article-hero-image クラスを追加してカバー画像の巨大化をストップ */}
-              <img
-                src={currentArticle.image}
-                alt={currentArticle.title}
-                className="post-hero-image article-hero-image"
-              />
-            </div>
-
-            {/* NotionからパースされたHTML本文を安全に注入 */}
-            <div
-              className="post-body"
-              dangerouslySetInnerHTML={{ __html: currentArticle.content || '<p>本文がありません。</p>' }}
-            />
-          </article>
+              <div className="card-content">
+                <div className="card-meta">
+                  <span className="date">{article.date}</span>
+                  <span className="read-time">{article.readTime}</span>
+                </div>
+                <h3 className="card-title">{article.title}</h3>
+                <p className="card-excerpt">{article.excerpt}</p>
+                <div className="card-footer">
+                  <span className="read-more">Read article &rarr;</span>
+                </div>
+              </div>
+            </article>
+          ))
         ) : (
-          /* ================= 一覧画面 ================= */
-          <>
-            <div className="section-header">
-              <h2>Latest Articles</h2>
-              <p>最新の記事一覧</p>
-            </div>
-
-            <div className="article-grid">
-              {filteredArticles.length > 0 ? (
-                filteredArticles.map(article => (
-                  <article
-                    key={article.id}
-                    className="article-card"
-                    onClick={() => setSelectedArticleId(article.id)} // クリックで詳細へ
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="card-image-wrapper">
-                      <img src={article.image} alt={article.title} className="card-image" />
-                      <span className="category-badge">{article.category}</span>
-                    </div>
-                    <div className="card-content">
-                      <div className="card-meta">
-                        <span className="date">{article.date}</span>
-                        <span className="read-time">{article.readTime}</span>
-                      </div>
-                      <h3 className="card-title">{article.title}</h3>
-                      <p className="card-excerpt">{article.excerpt}</p>
-                      <div className="card-footer">
-                        <span className="read-more">Read article &rarr;</span>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <p className="no-results">「{searchTerm}」に一致する記事は見つかりませんでした。</p>
-              )}
-            </div>
-          </>
+          <p className="no-results">「{searchTerm}」に一致する記事は見つかりませんでした。</p>
         )}
-      </main>
+      </div>
+    </>
+  );
+}
 
-      <footer className="footer">
-        <p>&copy; 2026 𝄇MEDIUM All rights reserved.</p>
-      </footer>
-    </div>
+// アプリ全体のルート定義
+function App() {
+  const ARTICLES: Article[] = (initialArticles as Article[]) || [];
+
+  return (
+    <Router>
+      <div className="app-container">
+        {/* ヘッダーセクション */}
+        <header className="header">
+          <div className="header-inner">
+            {/* ロゴをクリックしたらトップページ「/」に遷移するリンクにする */}
+            <Link to="/" className="logo" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+              𝄇MEDIUM
+            </Link>
+          </div>
+        </header>
+
+        {/* メインコンテンツ（ここでURLに応じて中身が切り替わる） */}
+        <main className="main-content">
+          <Routes>
+            {/* ルートURL（/）のときは一覧を表示 */}
+            <Route path="/" element={<ArticleList articles={ARTICLES} />} />
+            {/* /article/任意のID のときはさっき作った詳細JSXを表示 */}
+            <Route path="/article/:id" element={<ArticleDetail />} />
+          </Routes>
+        </main>
+
+        <footer className="footer">
+          <p>&copy; 2026 𝄇MEDIUM All rights reserved.</p>
+        </footer>
+      </div>
+    </Router>
   );
 }
 
