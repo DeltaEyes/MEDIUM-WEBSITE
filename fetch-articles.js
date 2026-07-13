@@ -4,6 +4,14 @@ import path from 'path';
 const databaseId = process.env.NOTION_DATABASE_ID;
 const token = process.env.NOTION_TOKEN;
 
+// 画像を自動ダウンロードするヘルパー関数
+async function downloadImage(url, destPath) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`画像のダウンロードに失敗: ${res.statusText}`);
+    const buffer = await res.arrayBuffer();
+    fs.writeFileSync(destPath, Buffer.from(buffer));
+}
+
 // Notionのブロックデータを簡易的なHTML文字列に変換するヘルパー関数
 async function getPageContent(pageId) {
     try {
@@ -60,9 +68,28 @@ async function getPageContent(pageId) {
 }
 
 async function fetchArticles() {
+    const dirPath = path.resolve('src/data');
+    const filePath = path.join(dirPath, 'articles.json');
+    const imagesDir = path.resolve('public/images');
+
+    if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+    }
+
     if (!token || !databaseId) {
-        console.log("Notionの環境変数が設定されていないため、データ取得をスキップします。");
+        console.log("Notionの環境変数が設定されていません。");
+        if (process.env.CF_PAGES === '1') {
+            console.error("【致命的エラー】環境変数が読み込めないため、ビルドを安全に停止します。");
+            process.exit(1);
+        }
+        if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+        fs.writeFileSync(filePath, JSON.stringify([], null, 2));
         return;
+    }
+
+    // public/images フォルダがなければ自動作成
+    if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
     }
 
     try {
@@ -108,21 +135,65 @@ async function fetchArticles() {
                 }
             }
 
+            // 画像列の自動探索
+            let imageProp = null;
+            for (const key of Object.keys(props)) {
+                const lowerKey = key.toLowerCase().trim();
+                if (['image', 'images', '画像', 'カバー画像', 'アイキャッチ'].includes(lowerKey)) {
+                    imageProp = props[key];
+                    break;
+                }
+            }
+
             const titleObj = props.名前 || props.Name || props.name;
             const excerptObj = props.Excerpt || props.excerpt;
             const dateObj = props.Date || props.date;
-            const imageObj = props.Image || props.image;
 
-            // 本文HTMLの取得
             const contentHtml = await getPageContent(page.id);
 
-            // 分裂した文字列を1つに合体
             const fullTitle = titleObj?.title ? titleObj.title.map(t => t.plain_text).join('') : 'Untitled';
             const fullExcerpt = excerptObj?.rich_text ? excerptObj.rich_text.map(t => t.plain_text).join('') : '';
-            const fullImage = imageObj?.rich_text ? imageObj.rich_text.map(t => t.plain_text).join('') : 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600';
 
-            // ★ 本文の文字数から読了時間を全自動計算（1分あたり400文字換算・最低1分）
-            const plainTextLength = contentHtml.replace(/<[^>]*>/g, '').length; // HTMLタグをすべて除外した純粋な文字数
+            // ★ 画像の全自動ダウンロード＆パス置換処理
+            let finalImageUrl = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=600';
+
+            if (imageProp) {
+                // Notionに直接アップロードされたファイル（Files & media型）の処理
+                if (imageProp.type === 'files' && imageProp.files?.length > 0) {
+                    const fileObj = imageProp.files[0];
+                    const notionImageUrl = fileObj.file?.url || fileObj.external?.url;
+
+                    if (notionImageUrl) {
+                        try {
+                            // URLから拡張子を特定（なければ.jpg）
+                            const urlWithoutQuery = notionImageUrl.split('?')[0];
+                            let ext = path.extname(urlWithoutQuery) || '.jpg';
+                            if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext.toLowerCase())) {
+                                ext = '.jpg';
+                            }
+
+                            // 重複しないファイル名（NotionのページID）で保存先を決定
+                            const fileName = `${page.id}${ext}`;
+                            const destPath = path.join(imagesDir, fileName);
+
+                            // ビルド環境に画像を自動ダウンロード
+                            await downloadImage(notionImageUrl, destPath);
+                            finalImageUrl = `/images/${fileName}`; // サイト用のパスに置換
+                            console.log(`画像を自動保存しました: ${fileName}`);
+                        } catch (err) {
+                            console.error(`画像の自動取得に失敗しました:`, err);
+                        }
+                    }
+                }
+                // 従来のURL直貼り（テキスト型やURL型）だった場合の互換性フォールバック
+                else if (imageProp.type === 'rich_text' && imageProp.rich_text?.length > 0) {
+                    finalImageUrl = imageProp.rich_text.map(t => t.plain_text).join('');
+                } else if (imageProp.type === 'url' && imageProp.url) {
+                    finalImageUrl = imageProp.url;
+                }
+            }
+
+            const plainTextLength = contentHtml.replace(/<[^>]*>/g, '').length;
             const minutes = Math.max(1, Math.ceil(plainTextLength / 400));
             const finalReadTime = `${minutes} min read`;
 
@@ -132,20 +203,16 @@ async function fetchArticles() {
                 excerpt: fullExcerpt,
                 date: dateObj?.date?.start?.replace(/-/g, '.') || '',
                 category: categoryName,
-                readTime: finalReadTime, // 計算された時間をセット
-                image: fullImage,
+                readTime: finalReadTime,
+                image: finalImageUrl,
                 content: contentHtml
             };
         }));
 
-        const dirPath = path.resolve('src/data');
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
         }
-        fs.writeFileSync(
-            path.join(dirPath, 'articles.json'),
-            JSON.stringify(articles, null, 2)
-        );
+        fs.writeFileSync(filePath, JSON.stringify(articles, null, 2));
         console.log(`Notionから ${articles.length} 件の記事を正常に取得しました。`);
     } catch (error) {
         console.error('Notionからのデータ取得に失敗しました:', error);
