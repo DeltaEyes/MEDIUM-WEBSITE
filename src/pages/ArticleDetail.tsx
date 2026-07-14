@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useEffect } from 'react'; // ★ useEffect を追加
 import initialArticles from '../data/articles.json';
 
 interface Article {
@@ -13,53 +13,18 @@ interface Article {
     content: string;
 }
 
-declare global {
-    interface Window {
-        twttr?: {
-            widgets?: {
-                load: (el?: HTMLElement) => void;
-            };
-        };
-        instgrm?: {
-            Embeds?: {
-                process: () => void;
-            };
-        };
-    }
-}
-
 export default function ArticleDetail() {
     const { id } = useParams<{ id: string }>();
+
     const ARTICLES = initialArticles as Article[];
     const article = ARTICLES.find(a => a.id === id);
 
+    // ★ 記事詳細が開かれたら、ブラウザのタブ名（タイトル）を記事のタイトルにする
     useEffect(() => {
         if (article) {
             document.title = `${article.title} | 𝄇MEDIUM`;
-            if (window.twttr && window.twttr.widgets) {
-                window.twttr.widgets.load();
-            }
-            if (window.instgrm && window.instgrm.Embeds) {
-                window.instgrm.Embeds.process();
-            }
         }
     }, [article]);
-
-    // 💡 Instagramの拒否問題を解決するための置換関数
-    const formatHtmlContent = (html: string) => {
-        if (!html) return '<p>本文がありません。</p>';
-
-        // iframeのsrcにある通常のInstagram URL (p/ や reel/) を検出して末尾に /embed/ を自動付与
-        return html.replace(
-            /src="https:\/\/(www\.)?instagram\.com\/(p|reel)\/([^"/]+)\/?([^"]*)"/g,
-            (match, type, id, extra) => {
-                // すでにURLの中に embed が含まれている場合は何もしない
-                if (extra.includes('embed')) return match;
-                // 埋め込み専用URLに変換して返す
-                return `src="https://www.instagram.com/${type}/${id}/embed/"`;
-            }
-        );
-    };
 
     if (!article) {
         return (
@@ -94,10 +59,13 @@ export default function ArticleDetail() {
                 />
             </div>
 
-            {/* 💡 修正ポイント: formatHtmlContent関数を通してHTMLを流し込む */}
+            {/* ★ ここを修正：NotionのHTML内のApple MusicのURLを、埋め込み専用URL（embed.）に自動置換して注入 */}
             <div
                 className="post-body"
-                dangerouslySetInnerHTML={{ __html: formatHtmlContent(article.content) }}
+                dangerouslySetInnerHTML={{
+                    __html: (article.content || '<p>本文がありません。</p>')
+                        .replace(/src="https:\/\/music\.apple\.com/g, 'src="https://embed.music.apple.com')
+                }}
             />
         </article>
     );
