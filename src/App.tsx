@@ -1,5 +1,4 @@
-// src/App.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // ★ useEffect を追加インポート
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
 import initialArticles from './data/articles.json';
@@ -20,6 +19,11 @@ interface Article {
 function ArticleList({ articles }: { articles: Article[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate(); // ページ移動のためのフック
+
+  // ★ ページが表示されたときに、ブラウザのタブ名（タイトル）を一覧用に書き換える
+  useEffect(() => {
+    document.title = "𝄇MEDIUM | 最新記事一覧"; // お好みの名前に変更してね！
+  }, []);
 
   const filteredArticles = articles.filter(article =>
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

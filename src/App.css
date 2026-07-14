@@ -366,3 +366,61 @@
     /* スマホではカバー画像の高さを少し抑える */
   }
 }
+
+/* ========================================================
+   追加：Instagram / X (Twitter) / Amazon の埋め込みスタイル
+   ======================================================== */
+
+/* X (Twitter) の埋め込みコンテナ */
+.notion-embed-x {
+  margin: 2rem auto;
+  max-width: 550px;
+  /* X公式の推奨最大幅 */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* X公式の生成するiframeが横幅いっぱいに広がらないように中央寄せ */
+.notion-embed-x .twitter-tweet {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Instagram の埋め込みコンテナ */
+.notion-embed-instagram {
+  margin: 2rem auto;
+  width: 100%;
+  max-width: 540px;
+  /* Instagram公式の最大幅 */
+  min-width: 326px;
+  /* 最小幅の担保 */
+  display: flex;
+  justify-content: center;
+}
+
+/* Instagram公式が生成するiframeを中央寄せにし、ブログの枠内に収める */
+.notion-embed-instagram iframe {
+  margin: 0 auto !important;
+  border-radius: 8px !important;
+  border: 1px solid #e1e4e8 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Amazon の埋め込みコンテナ（アソシエイトなどのiframe） */
+.notion-embed-amazon {
+  margin: 2rem auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.notion-embed-amazon iframe {
+  border: none;
+  max-width: 100%;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e1e4e8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
