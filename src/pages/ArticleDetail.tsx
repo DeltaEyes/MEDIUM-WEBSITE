@@ -52,7 +52,7 @@ export default function ArticleDetail() {
         // iframeのsrcにある通常のInstagram URL (p/ や reel/) を検出して末尾に /embed/ を自動付与
         return html.replace(
             /src="https:\/\/(www\.)?instagram\.com\/(p|reel)\/([^"/]+)\/?([^"]*)"/g,
-            (match, www, type, id, extra) => {
+            (match, type, id, extra) => {
                 // すでにURLの中に embed が含まれている場合は何もしない
                 if (extra.includes('embed')) return match;
                 // 埋め込み専用URLに変換して返す
