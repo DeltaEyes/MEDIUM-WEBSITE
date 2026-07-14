@@ -64,7 +64,10 @@ export default function ArticleDetail() {
                 className="post-body"
                 dangerouslySetInnerHTML={{
                     __html: (article.content || '<p>本文がありません。</p>')
+                        // 1. Apple Music の置換
                         .replace(/src="https:\/\/music\.apple\.com/g, 'src="https://embed.music.apple.com')
+                        // 2. Instagram (通常投稿・リール) の置換 ★ここを追加！
+                        .replace(/src="https:\/\/www\.instagram\.com\/(p|reel)\/([^/?"#]+)[^"]*"/g, 'src="https://www.instagram.com/$1/$2/embed/"')
                 }}
             />
         </article>
