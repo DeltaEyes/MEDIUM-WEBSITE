@@ -1,4 +1,4 @@
-import { useEffect } from 'react'; // ★ useEffect を追加インポート
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import initialArticles from '../data/articles.json';
 
@@ -13,7 +13,6 @@ interface Article {
     content: string;
 }
 
-// TypeScriptで window.twttr や window.instgrm のエラーを防ぐための型定義
 declare global {
     interface Window {
         twttr?: {
@@ -30,29 +29,37 @@ declare global {
 }
 
 export default function ArticleDetail() {
-    // URLの「/article/:id」の部分からIDを自動で取得する
     const { id } = useParams<{ id: string }>();
-
     const ARTICLES = initialArticles as Article[];
     const article = ARTICLES.find(a => a.id === id);
 
-    // ★ 記事が読み込まれたタイミングで、タブ名変更とSNS埋め込みの再描画を行う
     useEffect(() => {
         if (article) {
-            // 1. ブラウザのタブ名を「記事のタイトル | サイト名」に変更
             document.title = `${article.title} | 𝄇MEDIUM`;
-
-            // 2. dangerouslySetInnerHTML で入ってきたX (Twitter) のコードをウィジェット化
             if (window.twttr && window.twttr.widgets) {
                 window.twttr.widgets.load();
             }
-
-            // 3. dangerouslySetInnerHTML で入ってきた Instagram のコードをウィジェット化
             if (window.instgrm && window.instgrm.Embeds) {
                 window.instgrm.Embeds.process();
             }
         }
     }, [article]);
+
+    // 💡 Instagramの拒否問題を解決するための置換関数
+    const formatHtmlContent = (html: string) => {
+        if (!html) return '<p>本文がありません。</p>';
+
+        // iframeのsrcにある通常のInstagram URL (p/ や reel/) を検出して末尾に /embed/ を自動付与
+        return html.replace(
+            /src="https:\/\/(www\.)?instagram\.com\/(p|reel)\/([^"/]+)\/?([^"]*)"/g,
+            (match, www, type, id, extra) => {
+                // すでにURLの中に embed が含まれている場合は何もしない
+                if (extra.includes('embed')) return match;
+                // 埋め込み専用URLに変換して返す
+                return `src="https://www.instagram.com/${type}/${id}/embed/"`;
+            }
+        );
+    };
 
     if (!article) {
         return (
@@ -65,7 +72,6 @@ export default function ArticleDetail() {
 
     return (
         <article className="single-article blog-post-container">
-            {/* 一覧に戻るリンク */}
             <Link to="/" className="back-button" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '1.5rem', color: 'var(--color-text-muted)' }}>
                 &larr; 一覧に戻る
             </Link>
@@ -88,10 +94,10 @@ export default function ArticleDetail() {
                 />
             </div>
 
-            {/* 本文（HTML文字列）の流し込みセクション */}
+            {/* 💡 修正ポイント: formatHtmlContent関数を通してHTMLを流し込む */}
             <div
                 className="post-body"
-                dangerouslySetInnerHTML={{ __html: article.content || '<p>本文がありません。</p>' }}
+                dangerouslySetInnerHTML={{ __html: formatHtmlContent(article.content) }}
             />
         </article>
     );
