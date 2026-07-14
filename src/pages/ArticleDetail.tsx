@@ -11,6 +11,7 @@ interface Article {
     readTime: string;
     image: string;
     content: string;
+    tags?: string[]
 }
 
 export default function ArticleDetail() {
