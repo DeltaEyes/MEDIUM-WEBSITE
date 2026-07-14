@@ -68,6 +68,7 @@ export default function ArticleDetail() {
                         .replace(/src="https:\/\/music\.apple\.com/g, 'src="https://embed.music.apple.com')
                         // 2. Instagram (通常投稿・リール) の置換 ★ここを追加！
                         .replace(/src="https:\/\/www\.instagram\.com\/(p|reel)\/([^/?"#]+)[^"]*"/g, 'src="https://www.instagram.com/$1/$2/embed/"')
+                        .replace(/src="https:\/\/www\.instagram\.com\/(?!p|reel|reels|explore|direct|accounts|stories)([^/?"#]+)\/?[^"]*"/g, 'src="https://www.instagram.com/$1/embed/"')
                 }}
             />
         </article>
