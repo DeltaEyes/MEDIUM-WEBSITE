@@ -466,3 +466,53 @@ body {
   border: 1px solid #e1e4e8;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
+/* ========================================================
+   追加：Apple Music / Spotify の埋め込みスタイル
+   ======================================================== */
+
+/* Apple Music の埋め込みコンテナ */
+.notion-embed-applemusic {
+  margin: 2rem auto;
+  width: 100%;
+  max-width: 720px;
+  /* ブログの最大幅に合わせる */
+  display: flex;
+  justify-content: center;
+}
+
+.notion-embed-applemusic iframe {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  /* Apple Music公式の角丸に合わせる */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: transparent;
+}
+
+/* Spotify の埋め込みコンテナ */
+.notion-embed-spotify {
+  margin: 2rem auto;
+  width: 100%;
+  max-width: 720px;
+  /* ブログの最大幅に合わせる */
+  display: flex;
+  justify-content: center;
+}
+
+.notion-embed-spotify iframe {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  /* Spotify公式の角丸に合わせる */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* スマホ用の微調整（音楽プレイヤーの高さなどを考慮） */
+@media (max-width: 640px) {
+
+  .notion-embed-applemusic,
+  .notion-embed-spotify {
+    margin: 1.5rem auto;
+  }
+}
