@@ -326,23 +326,26 @@
   margin-bottom: 2rem;
 }
 
-/* 3. 本文内画像（ポッチャマ等）を左寄せにし、縦横比を維持して縮小 */
+/* 3. 本文内画像を横幅いっぱいに広げ、縦長画像が縮まないように修正 */
 .notion-body-img-wrapper {
-  margin: 1.5rem 0;
+  margin: 2.5rem 0;
   width: 100%;
   display: flex;
   justify-content: center;
-  /* centerから左寄せに修正して文字と揃える */
 }
 
 .notion-body-img {
+  width: 100% !important;
+  /* 横幅いっぱいに引き伸ばす */
   max-width: 100% !important;
-  max-height: 45vh !important;
-  /* 縦長画像が画面を埋め尽くさないよう上限を設定 */
+  /* はみ出し防止 */
+  height: auto !important;
+  /* 比率を保って拡大 */
+  /* max-height の制限を撤去して、縦長ノートが縦に潰れたり縮んだりするのを防ぎます */
   object-fit: contain !important;
-  /* アスペクト比を絶対に崩さない */
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  /* 影をリッチにして白いノート紙を立体的に見せる */
   transition: transform 0.2s;
 }
 
@@ -357,13 +360,12 @@
 /* スマホ用の微調整 */
 @media (max-width: 640px) {
   .notion-body-img {
-    max-width: 95% !important;
-    /* スマホ画面の文字幅と綺麗になじませる */
+    max-width: 100% !important;
+    border-radius: 4px;
   }
 
   .article-hero-image {
     height: 200px;
-    /* スマホではカバー画像の高さを少し抑える */
   }
 }
 
@@ -375,7 +377,6 @@
 .notion-embed-x {
   margin: 2rem auto;
   max-width: 550px;
-  /* X公式の推奨最大幅 */
   width: 100%;
   display: flex;
   justify-content: center;
@@ -392,9 +393,7 @@
   margin: 2rem auto;
   width: 100%;
   max-width: 540px;
-  /* Instagram公式の最大幅 */
   min-width: 326px;
-  /* 最小幅の担保 */
   display: flex;
   justify-content: center;
 }
@@ -434,7 +433,6 @@
   margin: 2rem auto;
   width: 100%;
   max-width: 720px;
-  /* ブログの最大幅に合わせる */
   display: flex;
   justify-content: center;
 }
@@ -443,7 +441,6 @@
   width: 100%;
   border: none;
   border-radius: 12px;
-  /* Apple Music公式の角丸に合わせる */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   background: transparent;
 }
@@ -453,7 +450,6 @@
   margin: 2rem auto;
   width: 100%;
   max-width: 720px;
-  /* ブログの最大幅に合わせる */
   display: flex;
   justify-content: center;
 }
@@ -462,7 +458,6 @@
   width: 100%;
   border: none;
   border-radius: 12px;
-  /* Spotify公式の角丸に合わせる */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
