@@ -534,3 +534,56 @@
 .nav-link:hover {
   color: #6b7280;
 }
+
+/* ========================================================
+   グローバルフッターのスタイル（常時表示）
+   ======================================================== */
+.footer {
+  border-top: 1px solid var(--border, #e5e7eb);
+  padding: 1.5rem 0;
+  background-color: #ffffff;
+  margin-top: 4rem;
+  /* コンテンツとの間に余白を確保 */
+}
+
+.footer-inner-bottom {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  /* コピーライトを左、インスタを右に配置 */
+  align-items: center;
+}
+
+.copyright {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* フッター専用のInstagramリンクスタイル */
+.footer-instagram {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.footer-instagram:hover {
+  color: #e1306c;
+  /* ホバー時にインスタカラーにフェード */
+}
+
+/* スマホ用の微調整 */
+@media (max-width: 640px) {
+  .footer-inner-bottom {
+    flex-direction: column;
+    gap: 0.8rem;
+    text-align: center;
+  }
+}

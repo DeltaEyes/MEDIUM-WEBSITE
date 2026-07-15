@@ -35,37 +35,6 @@ export default function About() {
                 <p>
                     deltaeyeとしてのビートメイク、DJのほか、CHACHA20という名義でラップをしている。
                 </p>
-
-                <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '2rem 0' }} />
-
-                {/* ★ 最下部にシンプルに配置する Instagram リンク */}
-                <div className="footer-sns" style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-                    <a
-                        href="https://www.instagram.com/medium_2026"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Instagram"
-                        style={{
-                            color: '#1a1a1a',
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.95rem',
-                            fontWeight: '600',
-                            transition: 'color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#e1306c'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#1a1a1a'}
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                        </svg>
-                        <span>Instagram</span>
-                    </a>
-                </div>
             </div>
         </div>
     );
