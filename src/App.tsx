@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react
 import './App.css';
 import initialArticles from './data/articles.json';
 import ArticleDetail from './pages/ArticleDetail';
+import About from './pages/About'; // ABOUT US ページ
 
 interface Article {
   id: string;
@@ -10,7 +11,7 @@ interface Article {
   excerpt: string;
   date: string;
   category: string;
-  tags?: string[]; // ★ 型定義に「tags」を追加（Notionから配列で取得する想定）
+  tags?: string[];
   readTime: string;
   image: string;
   content: string;
@@ -25,16 +26,14 @@ function ArticleList({ articles }: { articles: Article[] }) {
     document.title = "𝄇MEDIUM | 最新記事一覧";
   }, []);
 
-  // 1. 全記事から重複のない「ユニークなタグ一覧」を自動抽出
+  // 全記事から重複のない「ユニークなタグ一覧」を自動抽出
   const allTags = Array.from(
     new Set(articles.flatMap(article => article.tags || []))
   );
 
-  // 2. 検索ロジックに「タグ（tags）」の判定を追加
+  // 検索ロジックに「タグ（tags）」の判定を追加
   const filteredArticles = articles.filter(article => {
     const searchLower = searchTerm.toLowerCase();
-
-    // タイトル、カテゴリー、またはタグ配列のいずれかに検索ワードが含まれているか判定
     const matchesTitle = article.title.toLowerCase().includes(searchLower);
     const matchesCategory = article.category.toLowerCase().includes(searchLower);
     const matchesTags = article.tags?.some(tag => tag.toLowerCase().includes(searchLower));
@@ -54,7 +53,7 @@ function ArticleList({ articles }: { articles: Article[] }) {
         />
       </div>
 
-      {/* 3. ★ タグ一覧のフィルターボタンを設置 */}
+      {/* タグ一覧のフィルターボタンを設置 */}
       {allTags.length > 0 && (
         <div className="tags-filter-container" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '2.5rem', justifyContent: 'flex-end' }}>
           {allTags.map(tag => {
@@ -62,7 +61,7 @@ function ArticleList({ articles }: { articles: Article[] }) {
             return (
               <button
                 key={tag}
-                onClick={() => setSearchTerm(isSelected ? "" : tag)} // 選択中なら解除、そうでないならそのタグで検索
+                onClick={() => setSearchTerm(isSelected ? "" : tag)}
                 style={{
                   fontSize: '0.8rem',
                   padding: '0.3rem 0.8rem',
@@ -108,15 +107,15 @@ function ArticleList({ articles }: { articles: Article[] }) {
                 <h3 className="card-title">{article.title}</h3>
                 <p className="card-excerpt">{article.excerpt}</p>
 
-                {/* 4. ★ カード内にタグ一覧を表示（クリックでそのタグに絞り込み可能） */}
+                {/* カード内にタグ一覧を表示（クリックでそのタグに絞り込み可能） */}
                 {article.tags && article.tags.length > 0 && (
                   <div className="card-tags" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.8rem' }}>
                     {article.tags.map(tag => (
                       <span
                         key={tag}
                         onClick={(e) => {
-                          e.stopPropagation(); // 詳細ページへの遷移（親のonClick）を防止
-                          setSearchTerm(tag);  // タグ検索を実行
+                          e.stopPropagation(); // 詳細ページへの遷移を防ぎ、検索だけを走らせる
+                          setSearchTerm(tag);
                         }}
                         style={{
                           fontSize: '0.7rem',
@@ -156,18 +155,27 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        {/* ヘッダーセクション */}
         <header className="header">
           <div className="header-inner">
-            <Link to="/" className="logo" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-              𝄇MEDIUM
+            {/* 左側：ロゴ画像 */}
+            <Link to="/" className="logo-container">
+              <img src="/logo.png" alt="𝄇MEDIUM" className="logo-image" />
             </Link>
+
+            {/* 右側：ABOUT US へのナビゲーションリンク */}
+            <nav className="header-nav">
+              <Link to="/about" className="nav-link">ABOUT US</Link>
+            </nav>
           </div>
         </header>
 
+        {/* メインコンテンツ */}
         <main className="main-content">
           <Routes>
             <Route path="/" element={<ArticleList articles={ARTICLES} />} />
             <Route path="/article/:id" element={<ArticleDetail />} />
+            <Route path="/about" element={<About />} />
           </Routes>
         </main>
 

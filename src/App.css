@@ -337,26 +337,27 @@
 
 /* 3. 本文内画像を横幅いっぱいに広げ、縦長画像が縮まないように修正 */
 .notion-body-img-wrapper {
-  margin: 2.5rem 0;
+  margin: 2rem 0;
   width: 100%;
   display: flex;
   justify-content: center;
+  /* 画像を中央に寄せる */
 }
 
 .notion-body-img {
   display: block;
-  margin: 0 auto;
   width: auto !important;
-  /* 横幅は画像の本来の比率（アスペクト比）に任せる */
+  /* 画像本来の横幅に任せる */
   max-width: 100% !important;
-  /* 横方向はコンテナの幅（720px）を絶対に超えない */
+  /* 画面幅（720px）からは絶対にはみ出さない */
   height: auto !important;
-  /* 縦幅も比率を保って自動計算 */
-  max-height: 75vh !important;
-  /* ★ 縦長フライヤーなどが画面を埋め尽くさないよう、高さの上限を画面の75%に設定 */
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  /* 影が画像の形に隙間なくジャストフィットします */
+  /* 縦横比は完全に維持する */
+
+  /* ★ 変な白い枠や影（box-shadow）を完全にリセットして消し去る */
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+
   transition: transform 0.2s;
 }
 
@@ -479,4 +480,57 @@
   .notion-embed-spotify {
     margin: 1.5rem auto;
   }
+}
+
+/* ========================================================
+   ヘッダーレイアウトの調整（左右分散）
+   ======================================================== */
+.header {
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  padding: 0.8rem 0;
+  background-color: #ffffff;
+}
+
+.header-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  /* これでロゴが左端、ABOUT USが右端になります */
+  align-items: center;
+}
+
+/* ロゴコンテナ */
+.logo-container {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* ★ ロゴ画像のサイズ・余白調整 */
+.logo-image {
+  height: 38px;
+  /* ヘッダー内にぴったり収まる高さ。好みに合わせて調整してください */
+  width: auto;
+  display: block;
+}
+
+/* 右側ナビゲーションリンク */
+.header-nav {
+  display: flex;
+  align-items: center;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #6b7280;
 }
