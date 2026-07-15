@@ -196,12 +196,19 @@
   border: 1px solid #e1e4e8;
   border-radius: 8px;
   overflow: hidden;
-  margin: 1.5rem 0;
+  margin: 1.5rem auto;
+  /* 左右の余白を auto にして中央寄せ */
   text-decoration: none;
   color: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
   background: #ffffff;
   max-height: 120px;
+  width: 100%;
+  /* 基本は横幅いっぱい（100%）に */
+  max-width: 600px;
+  /* ★ PCで見た時にびよーんと伸びすぎないよう、スッキリ見える最大幅を設定 */
+  box-sizing: border-box;
+  /* ★ 線や余白を含めて枠内に綺麗に収める設定 */
 }
 
 .notion-link-preview:hover {
@@ -216,6 +223,8 @@
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  min-width: 0;
+  /* ★ 超重要！Flexの子要素が縮めるようにして、右側への突き抜けを防ぐ */
 }
 
 .notion-link-preview-title {
@@ -335,17 +344,19 @@
 }
 
 .notion-body-img {
-  width: 100% !important;
-  /* 横幅いっぱいに引き伸ばす */
+  display: block;
+  margin: 0 auto;
+  width: auto !important;
+  /* 横幅は画像の本来の比率（アスペクト比）に任せる */
   max-width: 100% !important;
-  /* はみ出し防止 */
+  /* 横方向はコンテナの幅（720px）を絶対に超えない */
   height: auto !important;
-  /* 比率を保って拡大 */
-  /* max-height の制限を撤去して、縦長ノートが縦に潰れたり縮んだりするのを防ぎます */
-  object-fit: contain !important;
+  /* 縦幅も比率を保って自動計算 */
+  max-height: 75vh !important;
+  /* ★ 縦長フライヤーなどが画面を埋め尽くさないよう、高さの上限を画面の75%に設定 */
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  /* 影をリッチにして白いノート紙を立体的に見せる */
+  /* 影が画像の形に隙間なくジャストフィットします */
   transition: transform 0.2s;
 }
 
