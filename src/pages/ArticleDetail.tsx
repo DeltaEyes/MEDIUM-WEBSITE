@@ -82,7 +82,7 @@ export default function ArticleDetail() {
         // 2. Amazon自動リンクカード化ロジック
         processed = processed.replace(
             /<a\s+[^>]*href="(https:\/\/(?:amzn\.to|www\.amazon\.co\.jp)[^"]*)"[^>]*>(.*?)<\/a>/gi,
-            (match, url, text) => {
+            (_match, url, text) => {
                 const displayTitle = url === text ? "Recommended Product" : text;
                 return `
           <a href="${url}" target="_blank" rel="noopener noreferrer" class="amazon-link-card">
