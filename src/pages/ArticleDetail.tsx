@@ -132,6 +132,9 @@ export default function ArticleDetail() {
         setTimeout(() => setToastMessage(""), 2500);
     };
 
+    // ★ LINE共有用：記事タイトルとURLをセットにした送信テキストを構築
+    const lineShareText = `${article.title} | 𝄇MEDIUM\n${currentUrl}`;
+
     return (
         <article className="single-article blog-post-container">
             {/* 最上部スクロールプログレスバー */}
@@ -185,7 +188,7 @@ export default function ArticleDetail() {
                         </button>
                     </div>
 
-                    {/* ★ 右側：X・LINE・ネイティブ共有が綺麗に並ぶボタングループ */}
+                    {/* 右側：X・LINE・ネイティブ共有が綺麗に並ぶボタングループ */}
                     <div className="share-section">
                         <span className="share-label">SHARE</span>
                         <div className="share-buttons-group">
@@ -203,9 +206,9 @@ export default function ArticleDetail() {
                                 </svg>
                             </a>
 
-                            {/* LINE (高精細ミニマル) */}
+                            {/* ★ LINE (ログインループを完全に回避するR/shareスキーム) */}
                             <a
-                                href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentUrl)}`}
+                                href={`https://line.me/R/share?text=${encodeURIComponent(lineShareText)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="share-btn btn-line"
@@ -216,7 +219,7 @@ export default function ArticleDetail() {
                                 </svg>
                             </a>
 
-                            {/* OS標準の共有メニュー（iPhone風アイコンの丸ボタン仕様） */}
+                            {/* OS標準の共有メニュー */}
                             <button
                                 onClick={handleNativeShare}
                                 className="share-btn btn-native-share"
