@@ -14,7 +14,7 @@ interface Article {
     content: string;
 }
 
-// スクロールバー専用コンポーネント
+// スクロールバー専用コンポーネント（チラつき防止）
 function ScrollProgressBar() {
     const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -57,7 +57,7 @@ export default function ArticleDetail() {
     const article = ARTICLES.find(a => a.id === id);
     const currentUrl = window.location.href;
 
-    // いいね数の初期化
+    // いいね数の初期化（ローカルストレージから取得して0スタートにする）
     useEffect(() => {
         if (article) {
             document.title = `${article.title} | 𝄇MEDIUM`;
@@ -67,15 +67,34 @@ export default function ArticleDetail() {
         }
     }, [article]);
 
-    // 本文のHTML変換をuseMemoでメモ化（チラつき防止）
+    // 本文のHTML変換をuseMemoでメモ化（Amazon自動カード化 & チラつき防止）
     const processedContentHtml = useMemo(() => {
         if (!article) return { __html: '<p>本文がありません。</p>' };
 
-        const rawHtml = article.content || '<p>本文がありません。</p>';
-        const processed = rawHtml
+        let processed = article.content || '<p>本文がありません。</p>';
+
+        // 1. Apple Music と Instagram の埋め込み最適化
+        processed = processed
             .replace(/src="https:\/\/music\.apple\.com/g, 'src="https://embed.music.apple.com')
             .replace(/src="https:\/\/www\.instagram\.com\/(p|reel)\/([^/?"#]+)[^"]*"/g, 'src="https://www.instagram.com/$1/$2/embed/"')
             .replace(/src="https:\/\/www\.instagram\.com\/(?!p|reel|reels|explore|direct|accounts|stories)([^/?"#]+)\/?[^"]*"/g, 'src="https://www.instagram.com/$1/embed/"');
+
+        // 2. Amazon自動リンクカード化ロジック
+        processed = processed.replace(
+            /<a\s+[^>]*href="(https:\/\/(?:amzn\.to|www\.amazon\.co\.jp)[^"]*)"[^>]*>(.*?)<\/a>/gi,
+            (match, url, text) => {
+                const displayTitle = url === text ? "Recommended Product" : text;
+                return `
+          <a href="${url}" target="_blank" rel="noopener noreferrer" class="amazon-link-card">
+            <div class="amazon-card-info">
+              <span class="amazon-card-label">SHOP ON AMAZON</span>
+              <span class="amazon-card-title">${displayTitle}</span>
+              <span class="amazon-card-domain">amazon.co.jp</span>
+            </div>
+          </a>
+        `;
+            }
+        );
 
         return { __html: processed };
     }, [article]);
@@ -97,19 +116,21 @@ export default function ArticleDetail() {
         const savedLikes = localStorage.getItem(`likes_${article.id}`);
         const myLikes = savedLikes ? parseInt(savedLikes, 10) : 0;
 
-        localStorage.setItem(`likes_${article.id}`, (myLikes + 1).toString());
-        setLikeCount(prev => prev + 1);
+        const newLikes = myLikes + 1;
+        localStorage.setItem(`likes_${article.id}`, newLikes.toString());
+        setLikeCount(newLikes);
+
         setIsLikedAnimate(true);
         setTimeout(() => setIsLikedAnimate(false), 300);
     };
 
-    // フォールバック用のURLコピー処理
+    // コピー処理
     const handleCopyLink = () => {
         navigator.clipboard.writeText(currentUrl);
         showToast("リンクをクリップボードにコピーしました！");
     };
 
-    // OSネイティブの共有メニューを呼び出す処理
+    // OSネイティブの共有メニュー
     const handleNativeShare = async () => {
         if (navigator.share) {
             try {
@@ -132,15 +153,12 @@ export default function ArticleDetail() {
         setTimeout(() => setToastMessage(""), 2500);
     };
 
-    // ★ LINE共有用：記事タイトルとURLをセットにした送信テキストを構築
     const lineShareText = `${article.title} | 𝄇MEDIUM\n${currentUrl}`;
 
     return (
         <article className="single-article blog-post-container">
-            {/* 最上部スクロールプログレスバー */}
             <ScrollProgressBar />
 
-            {/* 通知トースト */}
             {toastMessage && (
                 <div className="action-toast">
                     {toastMessage}
@@ -164,17 +182,10 @@ export default function ArticleDetail() {
                 <img src={article.image} alt={article.title} className="post-hero-image article-hero-image" />
             </div>
 
-            <div
-                className="post-body"
-                dangerouslySetInnerHTML={processedContentHtml}
-            />
-
-            {/* いいね ＆ 共有ボタンセクション */}
-            <footer className="article-actions-section">
-                <div className="actions-divider"></div>
-
-                <div className="actions-inner">
-                    {/* 左側：いいねボタン */}
+            {/* 🚀 【変更点①】いいね ＆ 共有セクション（サムネイルのすぐ下へ配置） */}
+            <div className="article-actions-section" style={{ margin: '1.5rem 0' }}>
+                <div className="actions-inner" style={{ padding: '0.5rem 0' }}>
+                    {/* 左側：いいね */}
                     <div className="like-section">
                         <button
                             onClick={handleLike}
@@ -188,12 +199,12 @@ export default function ArticleDetail() {
                         </button>
                     </div>
 
-                    {/* 右側：X・LINE・ネイティブ共有が綺麗に並ぶボタングループ */}
+                    {/* 右側：シェアボタン一式 */}
                     <div className="share-section">
                         <span className="share-label">SHARE</span>
                         <div className="share-buttons-group">
 
-                            {/* X (Twitter) */}
+                            {/* X */}
                             <a
                                 href={`https://x.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(article.title + " | 𝄇MEDIUM")}`}
                                 target="_blank"
@@ -206,7 +217,7 @@ export default function ArticleDetail() {
                                 </svg>
                             </a>
 
-                            {/* ★ LINE (ログインループを完全に回避するR/shareスキーム) */}
+                            {/* LINE (アプリ直通スキーム) */}
                             <a
                                 href={`https://line.me/R/share?text=${encodeURIComponent(lineShareText)}`}
                                 target="_blank"
@@ -219,7 +230,7 @@ export default function ArticleDetail() {
                                 </svg>
                             </a>
 
-                            {/* OS標準の共有メニュー */}
+                            {/* OS共有 */}
                             <button
                                 onClick={handleNativeShare}
                                 className="share-btn btn-native-share"
@@ -235,7 +246,65 @@ export default function ArticleDetail() {
                         </div>
                     </div>
                 </div>
-            </footer>
+                <div className="actions-divider" style={{ margin: '1rem 0 0 0' }}></div>
+            </div>
+
+            {/* 🚀 【変更点②】著者の卵（丸型アバター ＋ 著者プロフィール欄） */}
+            {article.excerpt && (
+                <div className="author-profile-card" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '1.2rem 0',
+                    borderBottom: '1px solid var(--color-border, #e5e7eb)',
+                    marginBottom: '2.5rem'
+                }}>
+                    {/* 著者の「丸（卵型）」アイコン。ブランドロゴである「𝄇」を配置 */}
+                    <div className="author-avatar" style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        backgroundColor: '#111111',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1rem',
+                        fontWeight: '800',
+                        flexShrink: 0,
+                        border: '1px solid #111111'
+                    }}>
+                        𝄇
+                    </div>
+                    <div className="author-info">
+                        <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: '800',
+                            color: 'var(--color-text-muted, #6b7280)',
+                            letterSpacing: '0.08em',
+                            display: 'block',
+                            marginBottom: '0.15rem'
+                        }}>
+                            WRITER
+                        </span>
+                        <p style={{
+                            fontSize: '0.88rem',
+                            margin: 0,
+                            color: '#333333',
+                            lineHeight: '1.4',
+                            fontWeight: '500'
+                        }}>
+                            {article.excerpt}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* 記事本文 */}
+            <div
+                className="post-body"
+                dangerouslySetInnerHTML={processedContentHtml}
+            />
         </article>
     );
 }
