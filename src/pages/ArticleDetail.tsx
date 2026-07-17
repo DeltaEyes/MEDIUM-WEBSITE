@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEffect, useState, useMemo } from 'react'; // ★ useMemo を追加
+import { useEffect, useState, useMemo } from 'react';
 import initialArticles from '../data/articles.json';
 
 interface Article {
@@ -14,10 +14,7 @@ interface Article {
     content: string;
 }
 
-// ========================================================
-// ★ 対策①: スクロールバー専用の軽量コンポーネントを分離
-// これによりスクロール中の再レンダリングがここに閉じ込められ、記事本文に影響しなくなります
-// ========================================================
+// スクロールバー専用コンポーネント
 function ScrollProgressBar() {
     const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -60,21 +57,17 @@ export default function ArticleDetail() {
     const article = ARTICLES.find(a => a.id === id);
     const currentUrl = window.location.href;
 
-    // いいね数の初期化（ローカルストレージから取得して0スタートにする）
+    // いいね数の初期化
     useEffect(() => {
         if (article) {
             document.title = `${article.title} | 𝄇MEDIUM`;
-
             const savedLikes = localStorage.getItem(`likes_${article.id}`);
             const myLikes = savedLikes ? parseInt(savedLikes, 10) : 0;
             setLikeCount(myLikes);
         }
     }, [article]);
 
-    // ========================================================
-    // ★ 対策②: 本文のHTML変換をuseMemoでメモ化
-    // これにより、いいねボタンやトーストで画面が更新されても、本文のiframeは絶対にリロードされません
-    // ========================================================
+    // 本文のHTML変換をuseMemoでメモ化（チラつき防止）
     const processedContentHtml = useMemo(() => {
         if (!article) return { __html: '<p>本文がありません。</p>' };
 
@@ -96,7 +89,6 @@ export default function ArticleDetail() {
         );
     }
 
-    // 読了時間の自動計算
     const pureText = (article.content || '').replace(/<[^>]*>/g, '');
     const calculatedReadTime = Math.max(1, Math.ceil(pureText.length / 400));
 
@@ -111,22 +103,30 @@ export default function ArticleDetail() {
         setTimeout(() => setIsLikedAnimate(false), 300);
     };
 
-    // URLコピー処理
+    // フォールバック用のURLコピー処理
     const handleCopyLink = () => {
         navigator.clipboard.writeText(currentUrl);
         showToast("リンクをクリップボードにコピーしました！");
     };
 
-    // Instagram共有処理
-    const handleInstagramShare = () => {
-        navigator.clipboard.writeText(currentUrl);
-        showToast("URLをコピーしました。Instagramを開きます...");
-        setTimeout(() => {
-            window.open('https://www.instagram.com/', '_blank');
-        }, 1500);
+    // OSネイティブの共有メニューを呼び出す処理
+    const handleNativeShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${article.title} | 𝄇MEDIUM`,
+                    url: currentUrl,
+                });
+            } catch (error) {
+                if ((error as Error).name !== 'AbortError') {
+                    handleCopyLink();
+                }
+            }
+        } else {
+            handleCopyLink();
+        }
     };
 
-    // トーストメッセージ表示用ヘルパー
     const showToast = (msg: string) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(""), 2500);
@@ -134,7 +134,7 @@ export default function ArticleDetail() {
 
     return (
         <article className="single-article blog-post-container">
-            {/* ★ 最上部スクロールプログレスバー（分離したコンポーネントを配置） */}
+            {/* 最上部スクロールプログレスバー */}
             <ScrollProgressBar />
 
             {/* 通知トースト */}
@@ -151,7 +151,6 @@ export default function ArticleDetail() {
             <header className="post-header">
                 <span className="post-category">{article.category}</span>
                 <h1 className="post-title">{article.title}</h1>
-                {/* 日付と4 min readの左右端寄せスタイルはそのまま維持 */}
                 <div className="post-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '0.5rem' }}>
                     <span className="date">{article.date}</span>
                     <span className="read-time">{calculatedReadTime} min read</span>
@@ -162,7 +161,6 @@ export default function ArticleDetail() {
                 <img src={article.image} alt={article.title} className="post-hero-image article-hero-image" />
             </div>
 
-            {/* ★ メモ化したHTMLを適用 */}
             <div
                 className="post-body"
                 dangerouslySetInnerHTML={processedContentHtml}
@@ -187,7 +185,7 @@ export default function ArticleDetail() {
                         </button>
                     </div>
 
-                    {/* 右側：共有SNSボタン群 */}
+                    {/* ★ 右側：X・LINE・ネイティブ共有が綺麗に並ぶボタングループ */}
                     <div className="share-section">
                         <span className="share-label">SHARE</span>
                         <div className="share-buttons-group">
@@ -205,7 +203,7 @@ export default function ArticleDetail() {
                                 </svg>
                             </a>
 
-                            {/* LINE */}
+                            {/* LINE (高精細ミニマル) */}
                             <a
                                 href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(currentUrl)}`}
                                 target="_blank"
@@ -218,28 +216,16 @@ export default function ArticleDetail() {
                                 </svg>
                             </a>
 
-                            {/* Instagram */}
+                            {/* OS標準の共有メニュー（iPhone風アイコンの丸ボタン仕様） */}
                             <button
-                                onClick={handleInstagramShare}
-                                className="share-btn btn-instagram"
-                                aria-label="Instagram用のURLコピー"
+                                onClick={handleNativeShare}
+                                className="share-btn btn-native-share"
+                                aria-label="他の方法で共有"
                             >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                                </svg>
-                            </button>
-
-                            {/* URL コピー */}
-                            <button
-                                onClick={handleCopyLink}
-                                className="share-btn btn-copy"
-                                aria-label="URLをコピー"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                                    <polyline points="16 6 12 2 8 6"></polyline>
+                                    <line x1="12" y1="2" x2="12" y2="15"></line>
                                 </svg>
                             </button>
 

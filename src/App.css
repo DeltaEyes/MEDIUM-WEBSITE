@@ -718,6 +718,12 @@
   color: #ffffff;
 }
 
+.share-btn.btn-native-share:hover {
+  background-color: #1f2937;
+  border-color: #1f2937;
+  color: #ffffff;
+}
+
 /* --- 通知トーストのスタイル --- */
 .action-toast {
   position: fixed;
