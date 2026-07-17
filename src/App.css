@@ -587,3 +587,187 @@
     text-align: center;
   }
 }
+
+/* ========================================================
+   記事詳細ページ：いいね ＆ 共有セクションのスタイル
+   ======================================================== */
+.article-actions-section {
+  margin-top: 4rem;
+  width: 100%;
+}
+
+.actions-divider {
+  height: 1px;
+  background-color: var(--border, #e5e7eb);
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.actions-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+/* --- いいねボタンエリア --- */
+.like-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: #f3f4f6;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.like-action-btn .heart-icon {
+  color: #d1d5db;
+  transition: color 0.2s ease;
+}
+
+.like-action-btn:hover {
+  background-color: #ffe4e6;
+  color: #e11d48;
+}
+
+.like-action-btn:hover .heart-icon {
+  color: #e11d48;
+}
+
+.like-count {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  /* 数字の幅を等幅にしてガタつきを防ぐ */
+}
+
+/* いいねクリック時の跳ねるアニメーション */
+.animate-pop {
+  transform: scale(1.18);
+  background-color: #ffe4e6 !important;
+  color: #e11d48 !important;
+}
+
+.animate-pop .heart-icon {
+  color: #e11d48 !important;
+}
+
+/* --- 共有ボタンエリア --- */
+.share-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.share-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #9ca3af;
+}
+
+.share-buttons-group {
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* 共有ボタン共通定義 */
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  padding: 0;
+}
+
+/* ホバー時の各ブランドカラーへの変化 */
+.share-btn.btn-x:hover {
+  background-color: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+
+.share-btn.btn-line:hover {
+  background-color: #06c755;
+  border-color: #06c755;
+  color: #ffffff;
+}
+
+.share-btn.btn-instagram:hover {
+  background-color: #e1306c;
+  border-color: #e1306c;
+  color: #ffffff;
+}
+
+.share-btn.btn-copy:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* --- 通知トーストのスタイル --- */
+.action-toast {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1f2937;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  animation: fadeFrame 2.5s ease-in-out forwards;
+}
+
+@keyframes fadeFrame {
+  0% {
+    opacity: 0;
+    top: 1.5rem;
+  }
+
+  10% {
+    opacity: 1;
+    top: 2rem;
+  }
+
+  90% {
+    opacity: 1;
+    top: 2rem;
+  }
+
+  100% {
+    opacity: 0;
+    top: 1.5rem;
+  }
+}
+
+/* スマホ用のレスポンシブ微調整 */
+@media (max-width: 480px) {
+  .actions-inner {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .like-section,
+  .share-section {
+    justify-content: center;
+    width: 100%;
+  }
+}
