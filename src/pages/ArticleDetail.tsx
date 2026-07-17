@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react'; // ★ useMemo を追加
 import initialArticles from '../data/articles.json';
 
 interface Article {
@@ -14,20 +14,13 @@ interface Article {
     content: string;
 }
 
-export default function ArticleDetail() {
-    const { id } = useParams<{ id: string }>();
+// ========================================================
+// ★ 対策①: スクロールバー専用の軽量コンポーネントを分離
+// これによりスクロール中の再レンダリングがここに閉じ込められ、記事本文に影響しなくなります
+// ========================================================
+function ScrollProgressBar() {
     const [scrollProgress, setScrollProgress] = useState(0);
 
-    // ★ 新しいState群（いいね・共有用）
-    const [likeCount, setLikeCount] = useState(0);
-    const [isLikedAnimate, setIsLikedAnimate] = useState(false);
-    const [toastMessage, setToastMessage] = useState("");
-
-    const ARTICLES = initialArticles as Article[];
-    const article = ARTICLES.find(a => a.id === id);
-    const currentUrl = window.location.href;
-
-    // スクロールゲージの監視
     useEffect(() => {
         const handleScroll = () => {
             const scrollTop = window.scrollY;
@@ -39,18 +32,59 @@ export default function ArticleDetail() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // いいね数の初期化（ローカルストレージから取得）
+    return (
+        <div
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: `${scrollProgress}%`,
+                height: '4px',
+                backgroundColor: '#000000',
+                zIndex: 9999,
+                transition: 'width 0.1s ease-out',
+            }}
+        />
+    );
+}
+
+export default function ArticleDetail() {
+    const { id } = useParams<{ id: string }>();
+
+    // いいね・共有用ステート
+    const [likeCount, setLikeCount] = useState(0);
+    const [isLikedAnimate, setIsLikedAnimate] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
+
+    const ARTICLES = initialArticles as Article[];
+    const article = ARTICLES.find(a => a.id === id);
+    const currentUrl = window.location.href;
+
+    // いいね数の初期化（ローカルストレージから取得して0スタートにする）
     useEffect(() => {
         if (article) {
             document.title = `${article.title} | 𝄇MEDIUM`;
 
             const savedLikes = localStorage.getItem(`likes_${article.id}`);
             const myLikes = savedLikes ? parseInt(savedLikes, 10) : 0;
-
-            // メディアらしく見せるため、記事タイトルをベースにした擬似的な初期値 + 自分が押した数
-            const baseLikes = (article.title.length * 3) % 30 + 15;
-            setLikeCount(baseLikes + myLikes);
+            setLikeCount(myLikes);
         }
+    }, [article]);
+
+    // ========================================================
+    // ★ 対策②: 本文のHTML変換をuseMemoでメモ化
+    // これにより、いいねボタンやトーストで画面が更新されても、本文のiframeは絶対にリロードされません
+    // ========================================================
+    const processedContentHtml = useMemo(() => {
+        if (!article) return { __html: '<p>本文がありません。</p>' };
+
+        const rawHtml = article.content || '<p>本文がありません。</p>';
+        const processed = rawHtml
+            .replace(/src="https:\/\/music\.apple\.com/g, 'src="https://embed.music.apple.com')
+            .replace(/src="https:\/\/www\.instagram\.com\/(p|reel)\/([^/?"#]+)[^"]*"/g, 'src="https://www.instagram.com/$1/$2/embed/"')
+            .replace(/src="https:\/\/www\.instagram\.com\/(?!p|reel|reels|explore|direct|accounts|stories)([^/?"#]+)\/?[^"]*"/g, 'src="https://www.instagram.com/$1/embed/"');
+
+        return { __html: processed };
     }, [article]);
 
     if (!article) {
@@ -66,7 +100,7 @@ export default function ArticleDetail() {
     const pureText = (article.content || '').replace(/<[^>]*>/g, '');
     const calculatedReadTime = Math.max(1, Math.ceil(pureText.length / 400));
 
-    // ★ いいねクリック処理
+    // いいねクリック処理
     const handleLike = () => {
         const savedLikes = localStorage.getItem(`likes_${article.id}`);
         const myLikes = savedLikes ? parseInt(savedLikes, 10) : 0;
@@ -74,16 +108,16 @@ export default function ArticleDetail() {
         localStorage.setItem(`likes_${article.id}`, (myLikes + 1).toString());
         setLikeCount(prev => prev + 1);
         setIsLikedAnimate(true);
-        setTimeout(() => setIsLikedAnimate(false), 300); // アニメーション解除
+        setTimeout(() => setIsLikedAnimate(false), 300);
     };
 
-    // ★ URLコピー処理
+    // URLコピー処理
     const handleCopyLink = () => {
         navigator.clipboard.writeText(currentUrl);
         showToast("リンクをクリップボードにコピーしました！");
     };
 
-    // ★ Instagram共有処理
+    // Instagram共有処理
     const handleInstagramShare = () => {
         navigator.clipboard.writeText(currentUrl);
         showToast("URLをコピーしました。Instagramを開きます...");
@@ -100,19 +134,8 @@ export default function ArticleDetail() {
 
     return (
         <article className="single-article blog-post-container">
-            {/* 最上部スクロールプログレスバー */}
-            <div
-                style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: `${scrollProgress}%`,
-                    height: '4px',
-                    backgroundColor: '#000000',
-                    zIndex: 9999,
-                    transition: 'width 0.1s ease-out',
-                }}
-            />
+            {/* ★ 最上部スクロールプログレスバー（分離したコンポーネントを配置） */}
+            <ScrollProgressBar />
 
             {/* 通知トースト */}
             {toastMessage && (
@@ -128,9 +151,9 @@ export default function ArticleDetail() {
             <header className="post-header">
                 <span className="post-category">{article.category}</span>
                 <h1 className="post-title">{article.title}</h1>
-                <div className="post-meta">
+                {/* 日付と4 min readの左右端寄せスタイルはそのまま維持 */}
+                <div className="post-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '0.5rem' }}>
                     <span className="date">{article.date}</span>
-                    <span className="separator">•</span>
                     <span className="read-time">{calculatedReadTime} min read</span>
                 </div>
             </header>
@@ -139,19 +162,13 @@ export default function ArticleDetail() {
                 <img src={article.image} alt={article.title} className="post-hero-image article-hero-image" />
             </div>
 
+            {/* ★ メモ化したHTMLを適用 */}
             <div
                 className="post-body"
-                dangerouslySetInnerHTML={{
-                    __html: (article.content || '<p>本文がありません。</p>')
-                        .replace(/src="https:\/\/music\.apple\.com/g, 'src="https://embed.music.apple.com')
-                        .replace(/src="https:\/\/www\.instagram\.com\/(p|reel)\/([^/?"#]+)[^"]*"/g, 'src="https://www.instagram.com/$1/$2/embed/"')
-                        .replace(/src="https:\/\/www\.instagram\.com\/(?!p|reel|reels|explore|direct|accounts|stories)([^/?"#]+)\/?[^"]*"/g, 'src="https://www.instagram.com/$1/embed/"')
-                }}
+                dangerouslySetInnerHTML={processedContentHtml}
             />
 
-            {/* ========================================================
-         ★ 追加：いいね ＆ 共有ボタンセクション
-         ======================================================== */}
+            {/* いいね ＆ 共有ボタンセクション */}
             <footer className="article-actions-section">
                 <div className="actions-divider"></div>
 
@@ -196,8 +213,8 @@ export default function ArticleDetail() {
                                 className="share-btn btn-line"
                                 aria-label="LINEで送る"
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.185 1.039.646 1.28-.54 6.89-4.056 9.4-6.942 2.127-2.37 2.6-4.59 2.6-6.916zm-16.712 2.128h-1.637c-.321 0-.583-.262-.583-.583v-3.738c0-.321.262-.583.583-.583h1.637c.321 0 .583.262.583.583v.292c0 .321-.262.583-.583.583h-1.054v.875h1.054c.321 0 .583.262.583.583v.292c0 .321-.262.583-.583.583h-1.054v.875h1.054c.321 0 .583.262.583.583v.292c0 .322-.262.584-.583.584zm3.606 0h-1.637c-.321 0-.583-.262-.583-.583v-3.738c0-.321.262-.583.583-.583.321 0 .583.262.583.583v2.863l1.054-2.863c.094-.258.322-.423.583-.423h1.071c.421 0 .708.448.514.821l-1.319 2.508 1.411 2.557c.211.382-.066.855-.506.855h-1.114l-.974-2.285-.083.226v1.481c0 .321-.262.583-.583.583zm4.24 0h-.467c-.321 0-.583-.262-.583-.583v-3.738c0-.321.262-.583.583-.583h.467c.321 0 .583.262.583.583v3.738c0 .321-.262.583-.583.583zm4.924 0h-1.637c-.321 0-.583-.262-.583-.583v-3.738c0-.321.262-.583.583-.583.321 0 .583.262.583.583v.384l1.637 2.671v-2.472c0-.321.262-.583.583-.583h.467c.321 0 .583.262.583.583v3.738c0 .321-.262.583-.583.583-.321 0-.583-.262-.583-.583v-.384l-1.637-2.671v2.472c0 .321-.262.583-.583.583z" />
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.185 1.039.646 1.28-.54 6.89-4.056 9.4-6.942 2.127-2.37 2.6-4.59 2.6-6.916z" />
                                 </svg>
                             </a>
 
