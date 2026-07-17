@@ -4,6 +4,7 @@ import './App.css';
 import initialArticles from './data/articles.json';
 import ArticleDetail from './pages/ArticleDetail';
 import About from './pages/About'; // ABOUT US ページ
+import PrivacyPolicy from './pages/PrivacyPolicy'; // ★ プライバシーポリシーページをインポート
 
 interface Article {
   id: string;
@@ -176,6 +177,7 @@ function App() {
             <Route path="/" element={<ArticleList articles={ARTICLES} />} />
             <Route path="/article/:id" element={<ArticleDetail />} />
             <Route path="/about" element={<About />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} /> {/* ★ ルーティングを追加 */}
           </Routes>
         </main>
 
@@ -183,20 +185,38 @@ function App() {
           <div className="footer-inner-bottom">
             <p className="copyright">&copy; 2026 𝄇MEDIUM All rights reserved.</p>
 
-            {/* 常に表示されるフッターのInstagramリンク */}
-            <a
-              href="https://www.instagram.com/medium_2026"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-instagram"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-              </svg>
-              <span>Instagram</span>
-            </a>
+            {/* ★ プライバシーポリシーリンクとInstagramリンクを綺麗に並べるグループ */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <Link
+                to="/privacy"
+                className="footer-privacy-link"
+                style={{
+                  fontSize: '0.85rem',
+                  color: 'var(--color-text-muted, #6b7280)',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  transition: 'color 0.2s ease'
+                }}
+              >
+                Privacy Policy
+              </Link>
+
+              {/* 常に表示されるフッターのInstagramリンク */}
+              <a
+                href="https://www.instagram.com/medium_2026"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-instagram"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                <span>Instagram</span>
+              </a>
+            </div>
+
           </div>
         </footer>
       </div>
