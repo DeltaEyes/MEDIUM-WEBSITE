@@ -14,6 +14,11 @@ interface Article {
     content: string;
 }
 
+interface LikeStatus {
+    likeCount: number;
+    isLiked: boolean;
+}
+
 // スクロールバー専用コンポーネント（チラつき防止）
 function ScrollProgressBar() {
     const [scrollProgress, setScrollProgress] = useState(0);
@@ -50,6 +55,8 @@ export default function ArticleDetail() {
 
     // いいね・共有用ステート
     const [likeCount, setLikeCount] = useState(0);
+    const [isLiked, setIsLiked] = useState(false);
+    const [isLikeLoading, setIsLikeLoading] = useState(true);
     const [isLikedAnimate, setIsLikedAnimate] = useState(false);
     const [toastMessage, setToastMessage] = useState("");
 
@@ -57,14 +64,31 @@ export default function ArticleDetail() {
     const article = ARTICLES.find(a => a.id === id);
     const currentUrl = window.location.href;
 
-    // いいね数の初期化（ローカルストレージから取得して0スタートにする）
+    // Cloudflare Pages Function経由でD1から共有の件数を取得
     useEffect(() => {
-        if (article) {
-            document.title = `${article.title} | 𝄇MEDIUM`;
-            const savedLikes = localStorage.getItem(`likes_${article.id}`);
-            const myLikes = savedLikes ? parseInt(savedLikes, 10) : 0;
-            setLikeCount(myLikes);
-        }
+        if (!article) return;
+        document.title = `${article.title} | 𝄇MEDIUM`;
+
+        let cancelled = false;
+        const loadLikes = async () => {
+            try {
+                const result = await fetch(`/api/likes/${encodeURIComponent(article.id)}`);
+                if (!result.ok) throw new Error('Failed to load likes');
+                const status = await result.json() as LikeStatus;
+                if (!cancelled) {
+                    setLikeCount(status.likeCount);
+                    setIsLiked(status.isLiked);
+                }
+            } catch {
+                // API未接続時に、ローカルの偽の件数へフォールバックしない
+            } finally {
+                if (!cancelled) setIsLikeLoading(false);
+            }
+        };
+
+        setIsLikeLoading(true);
+        void loadLikes();
+        return () => { cancelled = true; };
     }, [article]);
 
     // 本文のHTML変換をuseMemoでメモ化（Amazon自動カード化 & チラつき防止）
@@ -111,17 +135,27 @@ export default function ArticleDetail() {
     const pureText = (article.content || '').replace(/<[^>]*>/g, '');
     const calculatedReadTime = Math.max(1, Math.ceil(pureText.length / 400));
 
-    // いいねクリック処理
-    const handleLike = () => {
-        const savedLikes = localStorage.getItem(`likes_${article.id}`);
-        const myLikes = savedLikes ? parseInt(savedLikes, 10) : 0;
-
-        const newLikes = myLikes + 1;
-        localStorage.setItem(`likes_${article.id}`, newLikes.toString());
-        setLikeCount(newLikes);
-
-        setIsLikedAnimate(true);
-        setTimeout(() => setIsLikedAnimate(false), 300);
+    // DB側でユーザーと記事の組み合わせを一意にし、競合なく切り替える
+    const handleLike = async () => {
+        if (isLikeLoading) return;
+        setIsLikeLoading(true);
+        try {
+            const result = await fetch(`/api/likes/${encodeURIComponent(article.id)}`, {
+                method: 'POST',
+            });
+            if (!result.ok) throw new Error('Failed to update like');
+            const status = await result.json() as LikeStatus;
+            setLikeCount(status.likeCount);
+            setIsLiked(status.isLiked);
+            if (status.isLiked) {
+                setIsLikedAnimate(true);
+                setTimeout(() => setIsLikedAnimate(false), 300);
+            }
+        } catch {
+            showToast('いいねを更新できませんでした。時間をおいてお試しください。');
+        } finally {
+            setIsLikeLoading(false);
+        }
     };
 
     // コピー処理
@@ -189,13 +223,15 @@ export default function ArticleDetail() {
                     <div className="like-section">
                         <button
                             onClick={handleLike}
-                            className={`like-action-btn ${isLikedAnimate ? 'animate-pop' : ''}`}
-                            aria-label="いいね！"
+                            className={`like-action-btn ${isLiked ? 'is-liked' : ''} ${isLikedAnimate ? 'animate-pop' : ''}`}
+                            aria-label={isLiked ? 'いいねを取り消す' : 'この記事にいいねする'}
+                            aria-pressed={isLiked}
+                            disabled={isLikeLoading}
                         >
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="heart-icon">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                             </svg>
-                            <span className="like-count">{likeCount}</span>
+                            <span className="like-count">{isLikeLoading ? '…' : likeCount}</span>
                         </button>
                     </div>
 

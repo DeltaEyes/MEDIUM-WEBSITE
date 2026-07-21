@@ -639,6 +639,25 @@
   color: #e11d48;
 }
 
+.like-action-btn.is-liked {
+  background-color: #ffe4e6;
+  color: #e11d48;
+}
+
+.like-action-btn.is-liked .heart-icon {
+  color: #e11d48;
+}
+
+.like-action-btn:focus-visible {
+  outline: 2px solid #e11d48;
+  outline-offset: 3px;
+}
+
+.like-action-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .like-count {
   font-size: 0.95rem;
   font-weight: 700;
